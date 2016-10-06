@@ -5,6 +5,7 @@
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include <map>
 
 struct Point
 {
@@ -52,11 +53,11 @@ void initialize_test_set(std::vector<Point> &test_vector, unsigned int test_set_
 	}
 }
 
-std::vector<std::pair<Point, double>> classify(Point test_point, std::vector<Point> learning_set, unsigned int learning_set_count, unsigned int K)
+std::vector<std::pair<Point, double> > classify(Point &test_point, std::vector<Point> &learning_set, unsigned int learning_set_count, unsigned int K)
 {
-	std::vector<std::pair<Point, double>> distances;
+	std::vector<std::pair<Point, double> > distances;
 	distances.reserve(learning_set_count);
-	for (const auto j : learning_set)
+	for (const auto &j : learning_set)
 	{
 		auto d = j.distance(test_point);
 		distances.push_back({ j, d });
@@ -64,7 +65,7 @@ std::vector<std::pair<Point, double>> classify(Point test_point, std::vector<Poi
 	std::sort(distances.begin(), distances.end(), [](auto &l, auto &r) {
 		return l.second < r.second;
 	});
-	return std::vector<std::pair<Point, double>>(distances.begin(), distances.begin()+K);
+	return std::vector<std::pair<Point, double> >(distances.begin(), distances.begin()+K);
 }
 
 int main()
@@ -89,26 +90,31 @@ int main()
 	//for (auto &i : test_set)
 
 #pragma omp parallel for
-	for (int it = 0; it < test_set.size(); ++it)
+//#pragma omp single
+	for (auto it = 0; it < test_set.size(); ++it)
 	{
 		auto i = &test_set[it];
+//#pragma omp task firstprivate(i)
 		auto nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
-		unsigned int label[4] = {0, 0, 0, 0};
+//#pragma omp taskwait
+		std::map<unsigned int, unsigned int> labels;
 		for (const auto &n : nearest_neighbours)
 		{
-			label[n.first.type-1]++;
+			labels[n.first.type];
+			labels[n.first.type]++;
 		}
-		auto temp = 0U, type = 0U;
+		auto type = max_element(labels.begin(), labels.end(), labels.value_comp());
+		/*auto temp = 0U, type = 0U;
 		for(unsigned t = 0; t < 4; ++t)
 		{
-			if (label[t] > temp) 
+			if (labels[t] > temp) 
 			{
-				temp = label[t];
+				temp = labels[t];
 				type = t+1;
 			}
-		}
-		(*i).type = type;
-		//omp_set_lock(&lock);
+		}*/
+		(*i).type = (*type).first;
+//#pragma omp 
 		//std::cout << (*i).to_string() << std::endl;
 		//omp_unset_lock(&lock);
 	}
