@@ -1,18 +1,19 @@
 #include <iostream>
 #include <omp.h>
-#include <string>
 #include <vector>
 #include <sstream>
 #include <cmath>
-#include <algorithm>
+#include <map>
 
 struct Point
 {
 	int x, y, type;
-	Point(int _x, int _y, int _t): x(_x), y(_y), type(_t)
-	{}
 
-	double distance(Point& other) const
+	Point(int _x, int _y, int _t): x(_x), y(_y), type(_t) {}
+
+	Point() { x = 0; y = 0; type = 0; }
+
+	double distance(Point other) const
 	{
 		return sqrt(pow(other.x - this->x, 2) + pow(other.y - this->y, 2));
 	}
@@ -29,7 +30,37 @@ struct Point
 	}
 };
 
-void initialize_learning_set(std::vector<Point> &learning_vector, unsigned int learning_set_count)
+unsigned int max_element(std::map<unsigned int, unsigned int> container)
+{
+	std::map<unsigned int, unsigned int>::const_iterator it = container.begin();
+	unsigned int temp = it->second;
+	for (unsigned int i = 1; i < container.size(); ++i)
+	{
+		if ((++it)->second > temp)
+		{
+			temp = it->second;
+		}
+	}
+	return temp;
+}
+
+std::vector<std::pair<Point, double> > sort_pair_vector(std::vector<std::pair<Point, double> > pairs)
+{
+	std::vector<std::pair<Point, double> > pairs_temp = pairs;
+	std::pair<Point, double> temp;
+	for (unsigned int j = pairs.size(); j > 1; --j)
+		for (unsigned int i = 0; i < pairs.size() - 1; ++i)
+		{
+			if (pairs[i].second > pairs[i + 1].second)
+			{
+				temp = pairs[i];
+				pairs[i] = pairs[i + 1];
+				pairs[i + 1] = temp;
+			}
+		}
+	return pairs_temp;
+}
+void initialize_learning_set(std::vector<Point> learning_vector, unsigned int learning_set_count)
 {
 	std::string buf;
 	for (unsigned int i = 0; i < learning_set_count; ++i)
@@ -41,7 +72,7 @@ void initialize_learning_set(std::vector<Point> &learning_vector, unsigned int l
 
 }
 
-void initialize_test_set(std::vector<Point> &test_vector, unsigned int test_set_count)
+void initialize_test_set(std::vector<Point> test_vector, unsigned int test_set_count)
 {
 	std::string buf;
 	for (unsigned int i = 0; i < test_set_count; ++i)
@@ -52,20 +83,20 @@ void initialize_test_set(std::vector<Point> &test_vector, unsigned int test_set_
 	}
 }
 
-std::vector<std::pair<Point, double>> classify(Point test_point, std::vector<Point> learning_set, unsigned int learning_set_count, unsigned int K)
+std::vector<std::pair<Point, double> > classify(Point test_point, std::vector<Point> learning_set, unsigned int learning_set_count, unsigned int K)
 {
-	std::vector<std::pair<Point, double>> distances;
+	std::vector<std::pair<Point, double> > distances;
 	distances.reserve(learning_set_count);
-	for (const auto j : learning_set)
+	for(std::vector<Point>::const_iterator j = learning_set.begin(); j != learning_set.end(); ++j)
 	{
-		auto d = j.distance(test_point);
-		distances.push_back({ j, d });
+		double d = j->distance(test_point);
+		distances.push_back({ *j, d });
 	}
-	std::sort(distances.begin(), distances.end(), [](auto &l, auto &r) {
-		return l.second < r.second;
-	});
-	return std::vector<std::pair<Point, double>>(distances.begin(), distances.begin()+K);
+
+	distances = sort_pair_vector(distances);
+	return std::vector<std::pair<Point, double> >(distances.begin(), distances.begin()+K);
 }
+
 
 int main()
 {
@@ -86,28 +117,20 @@ int main()
 	test_set.reserve(test_set_count);
 	initialize_test_set(test_set, test_set_count);
 
-	//for (auto &i : test_set)
-
 #pragma omp parallel for
 	for (int it = 0; it < test_set.size(); ++it)
 	{
-		auto i = &test_set[it];
-		auto nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
-		unsigned int label[4] = {0, 0, 0, 0};
-		for (const auto &n : nearest_neighbours)
+		Point *i = &test_set[it];
+		std::vector<std::pair<Point, double> > nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
+		std::map<unsigned int, unsigned int> labels;
+		for (std::vector<std::pair<Point, double> >::const_iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
 		{
-			label[n.first.type-1]++;
+			labels[n->first.type];
+			labels[n->first.type]++;
 		}
-		auto temp = 0U, type = 0U;
-		for(unsigned t = 0; t < 4; ++t)
-		{
-			if (label[t] > temp) 
-			{
-				temp = label[t];
-				type = t+1;
-			}
-		}
+		unsigned int type = max_element(labels);
 		(*i).type = type;
+
 		//omp_set_lock(&lock);
 		//std::cout << (*i).to_string() << std::endl;
 		//omp_unset_lock(&lock);
