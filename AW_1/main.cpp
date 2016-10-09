@@ -62,7 +62,6 @@ std::vector<std::pair<Point, double> > sort_pair_vector(std::vector<std::pair<Po
 }
 void initialize_learning_set(std::vector<Point> learning_vector, unsigned int learning_set_count)
 {
-	std::string buf;
 	for (unsigned int i = 0; i < learning_set_count; ++i)
 	{
 		int x, y, t;
@@ -74,7 +73,6 @@ void initialize_learning_set(std::vector<Point> learning_vector, unsigned int le
 
 void initialize_test_set(std::vector<Point> test_vector, unsigned int test_set_count)
 {
-	std::string buf;
 	for (unsigned int i = 0; i < test_set_count; ++i)
 	{
 		int x, y;
