@@ -1,9 +1,10 @@
 import random
-K = 4
-learning_cnt = 1000000
+import sys
+K = int(sys.argv[1]) if len(sys.argv) > 1 else 4
+learning_cnt = int(sys.argv[2]) if len(sys.argv) > 2 else 100
 learning_data = []
 for i in range(learning_cnt):
-    x, y = random.randint(-100, 100), random.randint(-100, 100)
+    x, y = random.randint(-10000, 10000), random.randint(-10000, 10000)
     if x >= 0 and y >= 0:
         c = '1'
     if x < 0 and y >= 0:
@@ -13,8 +14,8 @@ for i in range(learning_cnt):
     if x >= 0 and y < 0:
         c = '4'
     learning_data.append((c, x, y))
-    
-test_cnt = 10000
+
+test_cnt = int(sys.argv[2]) if len(sys.argv) > 3 else 10
 test_data = []
 for i in range(test_cnt):
     x, y = random.randint(-10000, 10000), random.randint(-10000, 10000)
@@ -29,4 +30,11 @@ with open('data', 'w') as f:
     for i in test_data:
         f.write(str(i[0]) + ' ' + str(i[1]) + '\n')
 
-        
+
+
+
+
+
+
+
+
