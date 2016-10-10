@@ -1,10 +1,8 @@
 #include <iostream>
 #include <omp.h>
-#include <string>
 #include <vector>
 #include <sstream>
 #include <cmath>
-//#include <algorithm>
 #include <map>
 
 struct Point
@@ -63,9 +61,19 @@ void sort_pair_vector(std::vector<std::pair<Point, double> > &pairs)
 		}
 }
 
+int cmpfunc(const void* _a, const void* _b)
+{
+	const std::pair<Point, double> *a = (std::pair<Point, double>*) _a;
+	const std::pair<Point, double> *b = (std::pair<Point, double>*) _b;
+	if (a->second == b->second)
+		return 0;
+	if (a->second > b->second)
+		return 1;
+	return -1;
+}
+
 void initialize_learning_set(std::vector<Point> &learning_vector, unsigned int learning_set_count)
 {
-	std::string buf;
 	for (unsigned int i = 0; i < learning_set_count; ++i)
 	{
 		int x, y, t;
@@ -77,7 +85,6 @@ void initialize_learning_set(std::vector<Point> &learning_vector, unsigned int l
 
 void initialize_test_set(std::vector<Point> &test_vector, unsigned int test_set_count)
 {
-	std::string buf;
 	for (unsigned int i = 0; i < test_set_count; ++i)
 	{
 		int x, y;
@@ -95,11 +102,8 @@ std::vector<std::pair<Point, double> > classify(Point &test_point, std::vector<P
 		double d = (*it).distance(test_point);
 		distances.push_back({ *it, d });
 	}
-
-	//std::sort(distances.begin(), distances.end(), [](auto &l, auto &r) {
-	//	return l.second < r.second;
-	//});
-	sort_pair_vector(distances);
+	qsort(&distances[0], distances.size(), sizeof(std::pair<Point, double>), cmpfunc);
+	//sort_pair_vector(distances);
 	return std::vector<std::pair<Point, double> >(distances.begin(), distances.begin()+K);
 }
 
@@ -122,38 +126,28 @@ int main()
 	std::vector<Point> test_set;
 	test_set.reserve(test_set_count);
 	initialize_test_set(test_set, test_set_count);
+	
 
-	//for (auto &i : test_set)
-
-#pragma omp parallel for
-//#pragma omp single
-	for (unsigned int it = 0; it < test_set.size(); ++it)
 	{
-		Point *i = &test_set[it];
-//#pragma omp task firstprivate(i)
-		std::vector<std::pair<Point, double> > nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
-//#pragma omp taskwait
-		std::map<unsigned int, unsigned int> labels;
-		for (std::vector<std::pair<Point, double> >::const_iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
-		//for (const auto &n : nearest_neighbours)
+#pragma omp parallel for
+		for (int it = 0; it < test_set.size(); ++it)
 		{
-			labels[n->first.type];
-			labels[n->first.type]++;
-		}
-		unsigned int type = max_element(labels);
-		/*auto temp = 0U, type = 0U;
-		for(unsigned t = 0; t < 4; ++t)
-		{
-			if (labels[t] > temp) 
+			Point *i = &test_set[it];
+			std::vector<std::pair<Point, double> > nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
+			std::map<unsigned int, unsigned int> labels;
+			for (std::vector<std::pair<Point, double> >::const_iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
 			{
-				temp = labels[t];
-				type = t+1;
+				labels[n->first.type];
+				labels[n->first.type]++;
 			}
-		}*/
-		(*i).type = type;
-//#pragma omp 
-		//std::cout << (*i).to_string() << std::endl;
-		//omp_unset_lock(&lock);
+			unsigned int type = max_element(labels);
+
+			(*i).type = type;
+
+			//omp_set_lock(&lock);
+			//std::cout << (*i).to_string() << std::endl;
+			//omp_unset_lock(&lock);
+		}
 	}
 	return 0;
 }
