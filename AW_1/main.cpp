@@ -95,7 +95,7 @@ std::vector<std::pair<Point, double> > classify(Point test_point, std::vector<Po
 {
 	std::vector<std::pair<Point, double> > distances;
 	distances.reserve(learning_set_count);
-	for(std::vector<Point>::const_iterator j = learning_set.begin(); j != learning_set.end(); ++j)
+	for(std::vector<Point>::iterator j = learning_set.begin(); j != learning_set.end(); ++j)
 	{
 		double d = j->distance(test_point);
 		distances.push_back({ *j, d });
@@ -131,7 +131,7 @@ int main()
 		Point *i = &test_set[it];
 		std::vector<std::pair<Point, double> > nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
 		std::map<unsigned int, unsigned int> labels;
-		for (std::vector<std::pair<Point, double> >::const_iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
+		for (std::vector<std::pair<Point, double> >::iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
 		{
 			labels[n->first.type];
 			labels[n->first.type]++;
