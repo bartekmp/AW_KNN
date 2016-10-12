@@ -43,6 +43,16 @@ unsigned int max_element(std::map<unsigned int, unsigned int> container)
 	}
 	return temp;
 }
+int cmpfunc(const void* _a, const void* _b)
+{
+	const std::pair<Point, double> *a = (std::pair<Point, double>*) _a;
+	const std::pair<Point, double> *b = (std::pair<Point, double>*) _b;
+	if (a->second == b->second)
+		return 0;
+	if (a->second > b->second)
+		return 1;
+	return -1;
+}
 
 std::vector<std::pair<Point, double> > sort_pair_vector(std::vector<std::pair<Point, double> > pairs)
 {
@@ -90,8 +100,8 @@ std::vector<std::pair<Point, double> > classify(Point test_point, std::vector<Po
 		double d = j->distance(test_point);
 		distances.push_back({ *j, d });
 	}
-
-	distances = sort_pair_vector(distances);
+	qsort(&distances[0], distances.size(), sizeof(std::pair<Point, double>), cmpfunc);
+	//distances = sort_pair_vector(distances);
 	return std::vector<std::pair<Point, double> >(distances.begin(), distances.begin()+K);
 }
 
