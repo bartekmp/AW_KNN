@@ -1,36 +1,41 @@
 #include <iostream>
 #include <omp.h>
-#include <vector>
 #include <sstream>
 #include <cmath>
 #include <map>
+#include <algorithm>
+#include <iterator>
+//#include <Windows.h>
 
 struct Point
 {
 	int x, y, type;
-	Point(int _x, int _y, int _t): x(_x), y(_y), type(_t)
+	double dist;
+	Point(int _x, int _y, int _t, double _d = 0.0): x(_x), y(_y), type(_t), dist(_d)
 	{}
 	Point()
 	{
-		x = 0; y = 0; type = 0;
+		x = 0; y = 0; type = 0; dist = 0.0;
 	}
 
-	double distance(Point& other) const
+	void distance(Point& other)
 	{
-		return sqrt(pow(other.x - this->x, 2) + pow(other.y - this->y, 2));
+		dist = sqrt(pow(other.x - this->x, 2) + pow(other.y - this->y, 2));
 	}
 
-	void point_type() const
-	{
-		std::cout << type;
-	}
 	std::string to_string() const
 	{
 		std::stringstream ss;
 		ss << "x: " << x << ", y: " << y << ", type: " << type;
 		return ss.str();
 	}
+
+	bool operator< (const Point& other) const
+	{
+		return (dist < other.dist);
+	}
 };
+
 
 unsigned int max_element(std::map<unsigned int, unsigned int> &container)
 {
@@ -46,65 +51,53 @@ unsigned int max_element(std::map<unsigned int, unsigned int> &container)
 	return temp;
 }
 
-void sort_pair_vector(std::vector<std::pair<Point, double> > &pairs)
+/*int cmpfunc(const void* _a, const void* _b)
 {
-	std::pair<Point, double> temp;
-	for (unsigned int j = pairs.size(); j > 1; --j)
-		for (unsigned int i = 0; i < pairs.size() - 1; ++i)
-		{
-			if (pairs[i].second > pairs[i + 1].second)
-			{
-				temp = pairs[i];
-				pairs[i] = pairs[i + 1];
-				pairs[i + 1] = temp;
-			}
-		}
-}
-
-int cmpfunc(const void* _a, const void* _b)
-{
-	const std::pair<Point, double> *a = (std::pair<Point, double>*) _a;
-	const std::pair<Point, double> *b = (std::pair<Point, double>*) _b;
-	if (a->second == b->second)
+	const Point *a = (Point*) _a;
+	const Point *b = (Point*) _b;
+	if (a->dist == b->dist)
 		return 0;
-	if (a->second > b->second)
+	if (a->dist > b->dist)
 		return 1;
 	return -1;
-}
+}*/
 
-void initialize_learning_set(std::vector<Point> &learning_vector, unsigned int learning_set_count)
+void initialize_learning_set(Point *learning_vector, unsigned int learning_set_count)
 {
 	for (unsigned int i = 0; i < learning_set_count; ++i)
 	{
 		int x, y, t;
 		std::cin >> x >> y >> t;
-		learning_vector.push_back(Point(x, y, t));
+		learning_vector[i] = Point(x, y, t);
 	}
-
 }
 
-void initialize_test_set(std::vector<Point> &test_vector, unsigned int test_set_count)
+void initialize_test_set(Point *test_vector, unsigned int test_set_count)
 {
 	for (unsigned int i = 0; i < test_set_count; ++i)
 	{
 		int x, y;
 		std::cin >> x >> y;
-		test_vector.push_back(Point(x, y, 0));
+		test_vector[i] = Point(x, y, 0);
 	}
 }
 
-std::vector<std::pair<Point, double> > classify(Point &test_point, std::vector<Point> &learning_set, unsigned int learning_set_count, unsigned int K)
+bool compare_points(Point a, Point b)
 {
-	std::vector<std::pair<Point, double> > distances;
-	distances.reserve(learning_set_count);
-	for (std::vector<Point>::iterator it = learning_set.begin(); it != learning_set.end(); ++it)
+	return (a.dist < b.dist);
+}
+
+void classify(Point &test_point, Point *learning_set, unsigned int learning_set_count)
+{
+	//std::pair<Point, double> *distances = new std::pair<Point, double>[learning_set_count];
+	for(unsigned int it = 0; it < learning_set_count; ++it)
 	{
-		double d = (*it).distance(test_point);
-		distances.push_back({ *it, d });
+		learning_set[it].distance(test_point);
+		//distances[it] = { learning_set[it], d };
 	}
-	qsort(&distances[0], distances.size(), sizeof(std::pair<Point, double>), cmpfunc);
-	//sort_pair_vector(distances);
-	return std::vector<std::pair<Point, double> >(distances.begin(), distances.begin()+K);
+	std::sort(learning_set, learning_set + learning_set_count);
+	//qsort(learning_set, learning_set_count, sizeof(Point), cmpfunc);
+	//return distances;
 }
 
 
@@ -113,41 +106,67 @@ int main()
 	omp_lock_t lock;
 	omp_init_lock(&lock);
 
+
+	Point *learning_set, *test_set, *learning_set_for_thread;
+	
+	/*LARGE_INTEGER frequency;
+	if (::QueryPerformanceFrequency(&frequency) == FALSE)
+		throw "foo";
+		*/
+
+
+
+	std::cin.tie(NULL);
+	std::ios_base::sync_with_stdio(false);
+
 	unsigned int K, learning_set_count, test_set_count;
 	std::cin >> K;
 	std::cin >> learning_set_count;
 
-	std::vector<Point> learning_set;
-	learning_set.reserve(learning_set_count);
+	learning_set = new Point[learning_set_count];
 	initialize_learning_set(learning_set, learning_set_count);
 	
 	std::cin >> test_set_count;
 
-	std::vector<Point> test_set;
-	test_set.reserve(test_set_count);
-	initialize_test_set(test_set, test_set_count);
-	
+	test_set = new Point[test_set_count];
+	initialize_test_set(test_set, test_set_count);	
+	/*
+	LARGE_INTEGER start;
+	LARGE_INTEGER end;
+	if (::QueryPerformanceCounter(&start) == FALSE)
+		throw "foo";
+		*/
 
-	{
-#pragma omp parallel for
-		for (int it = 0; it < test_set.size(); ++it)
+#pragma omp parallel for private(learning_set_for_thread) shared(learning_set)
+		for (int it = 0; it < test_set_count; ++it)
 		{
 			Point *i = &test_set[it];
-			std::vector<std::pair<Point, double> > nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
+			learning_set_for_thread = new Point[learning_set_count];
+			std::memcpy(learning_set_for_thread, learning_set, sizeof(Point));
+			//std::copy(std::begin(learning_set), std::end(learning_set), std::begin(learning_set_for_thread));
+			classify(*i, learning_set_for_thread, learning_set_count);
+
 			std::map<unsigned int, unsigned int> labels;
-			for (std::vector<std::pair<Point, double> >::const_iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
+
+			for (int n = 0; n < K; ++n)
 			{
-				labels[n->first.type];
-				labels[n->first.type]++;
+				labels[learning_set_for_thread[n].type];
+				labels[learning_set_for_thread[n].type]++;
 			}
 			unsigned int type = max_element(labels);
 
 			(*i).type = type;
-
-			//omp_set_lock(&lock);
-			//std::cout << (*i).to_string() << std::endl;
+			delete[] learning_set_for_thread;
+			//omp_set_lock(&lock); 		
 			//omp_unset_lock(&lock);
 		}
-	}
+	/*
+	if (::QueryPerformanceCounter(&end) == FALSE)
+		throw "foo";
+	double interval = static_cast<double>(end.QuadPart - start.QuadPart) / frequency.QuadPart;
+	std::cout << interval << std::endl;
+	*/
+	delete[] learning_set;
+	delete[] test_set;
 	return 0;
 }

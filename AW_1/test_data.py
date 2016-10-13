@@ -1,7 +1,7 @@
 import random
 import sys
-K = 4
-learning_cnt = 10 if len(sys.argv) <= 1 else int(sys.argv[1])
+K = 4 if len(sys.argv) <= 1 else int(sys.argv[1])
+learning_cnt = 10 if len(sys.argv) <= 2 else int(sys.argv[2])
 learning_data = []
 for i in range(learning_cnt):
     x, y = random.randint(-10000, 10000), random.randint(-10000, 10000)
@@ -15,7 +15,7 @@ for i in range(learning_cnt):
         c = '4'
     learning_data.append((c, x, y))
     
-test_cnt = 2 if len(sys.argv) <= 2 else int(sys.argv[2])
+test_cnt = 2 if len(sys.argv) <= 3 else int(sys.argv[3])
 test_data = []
 for i in range(test_cnt):
     x, y = random.randint(-10000, 10000), random.randint(-10000, 10000)
