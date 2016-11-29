@@ -58,8 +58,8 @@ std::vector<std::pair<Point, double> > sort_pair_vector(std::vector<std::pair<Po
 {
 	std::vector<std::pair<Point, double> > pairs_temp = pairs;
 	std::pair<Point, double> temp;
-	for (unsigned int j = pairs.size(); j > 1; --j)
-		for (unsigned int i = 0; i < pairs.size() - 1; ++i)
+	for (unsigned int j = pairs.size(); j > 1; j--)
+		for (unsigned int i = 0; i < pairs.size() - 1; i++)
 		{
 			if (pairs[i].second > pairs[i + 1].second)
 			{
@@ -70,25 +70,28 @@ std::vector<std::pair<Point, double> > sort_pair_vector(std::vector<std::pair<Po
 		}
 	return pairs_temp;
 }
-void initialize_learning_set(std::vector<Point> learning_vector, unsigned int learning_set_count)
+std::vector<Point> initialize_learning_set(unsigned int learning_set_count)
 {
-	for (unsigned int i = 0; i < learning_set_count; ++i)
+	std::vector<Point> tmp;
+	for (unsigned int i = 0; i < learning_set_count; i++)
 	{
 		int x, y, t;
 		std::cin >> x >> y >> t;
-		learning_vector.push_back(Point(x, y, t));
+		tmp.push_back(Point(x, y, t));
 	}
-
+	return tmp;
 }
 
-void initialize_test_set(std::vector<Point> test_vector, unsigned int test_set_count)
+std::vector<Point> initialize_test_set(unsigned int test_set_count)
 {
-	for (unsigned int i = 0; i < test_set_count; ++i)
+	std::vector<Point> tmp;
+	for (unsigned int i = 0; i < test_set_count; i++)
 	{
 		int x, y;
 		std::cin >> x >> y;
-		test_vector.push_back(Point(x, y, 0));
+		tmp.push_back(Point(x, y, 0));
 	}
+	return tmp;
 }
 
 std::vector<std::pair<Point, double> > classify(Point test_point, std::vector<Point> learning_set, unsigned int learning_set_count, unsigned int K)
@@ -108,28 +111,27 @@ std::vector<std::pair<Point, double> > classify(Point test_point, std::vector<Po
 
 int main()
 {
-	omp_lock_t lock;
-	omp_init_lock(&lock);
-
 	unsigned int K, learning_set_count, test_set_count;
 	std::cin >> K;
 	std::cin >> learning_set_count;
 
+	std::vector<Point> tmp_lrnset = initialize_learning_set(learning_set_count);
 	std::vector<Point> learning_set;
 	learning_set.reserve(learning_set_count);
-	initialize_learning_set(learning_set, learning_set_count);
+	std::copy(tmp_lrnset.begin(), tmp_lrnset.end(), learning_set.begin());
 	
 	std::cin >> test_set_count;
-
+	
+	std::vector<Point> tmp_testset = initialize_learning_set(learning_set_count);
 	std::vector<Point> test_set;
-	test_set.reserve(test_set_count);
-	initialize_test_set(test_set, test_set_count);
+	learning_set.reserve(test_set_count);
+	std::copy(tmp_testset.begin(), tmp_testset.end(), test_set.begin());
 
 #pragma omp parallel for
 	for (int it = 0; it < test_set.size(); ++it)
 	{
-		Point *i = &test_set[it];
-		std::vector<std::pair<Point, double> > nearest_neighbours = classify(*i, learning_set, learning_set_count, K);
+		Point i = test_set[it];
+		std::vector<std::pair<Point, double> > nearest_neighbours = classify(test_set[it], learning_set, learning_set_count, K);
 		std::map<unsigned int, unsigned int> labels;
 		for (std::vector<std::pair<Point, double> >::iterator n = nearest_neighbours.begin(); n != nearest_neighbours.end(); ++n)
 		{
@@ -137,7 +139,7 @@ int main()
 			labels[n->first.type]++;
 		}
 		unsigned int type = max_element(labels);
-		(*i).type = type;
+		test_set[it].type = type;
 
 		//omp_set_lock(&lock);
 		//std::cout << (*i).to_string() << std::endl;
