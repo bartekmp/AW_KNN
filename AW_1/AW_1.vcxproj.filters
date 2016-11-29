@@ -15,10 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="speedup2.cpp">
+    <ClCompile Include="main_fast2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

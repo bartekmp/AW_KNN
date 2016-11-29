@@ -7,25 +7,43 @@
 
 struct Point
 {
-	int x, y, type;
-
-	Point(int _x, int _y, int _t): x(_x), y(_y), type(_t) {}
-
-	Point() { x = 0; y = 0; type = 0; }
-
-	double distance(Point other) const
+	int x, y, z;
+	unsigned int type;
+	double dist;
+	Point(int _x, int _y, int _z, int _t, double _dist = 0.0) : x(_x), y(_y), z(_z), type(_t), dist(_dist)
+	{}
+	Point(int _t) : type(_t)
 	{
-		return sqrt(pow(other.x - this->x, 2) + pow(other.y - this->y, 2));
+		x = y = z = 0;
+		dist = 0.0;
+	}
+	Point()
+	{
+		x = y = z = 0; type = 0; dist = 0.0;
+	}
+	Point(const Point &obj)
+	{
+		this->type = obj.type;
+		this->x = obj.x;
+		this->y = obj.y;
+		this->z = obj.z;
+		this->dist = obj.dist;
+	}
+	double distance(Point& other)
+	{
+		dist = sqrt(pow(other.x - this->x, 2) + pow(other.x - this->x, 2) + pow(other.x - this->x, 2));
+		return dist;
 	}
 
-	void point_type() const
+	bool operator< (const Point& other) const
 	{
-		std::cout << type;
+		return dist < other.dist;
 	}
-	std::string to_string() const
+
+	std::string str() const
 	{
 		std::stringstream ss;
-		ss << "x: " << x << ", y: " << y << ", type: " << type;
+		ss << "x = " << x << ", y = " << y << ", z = " << z << ", type = " << type;
 		return ss.str();
 	}
 };
@@ -75,9 +93,9 @@ std::vector<Point> initialize_learning_set(unsigned int learning_set_count)
 	std::vector<Point> tmp;
 	for (unsigned int i = 0; i < learning_set_count; i++)
 	{
-		int x, y, t;
-		std::cin >> x >> y >> t;
-		tmp.push_back(Point(x, y, t));
+		int x, y, z, t;
+		std::cin >> x >> y >> z >> t;
+		tmp.push_back(Point(x, y, z, t));
 	}
 	return tmp;
 }
@@ -87,9 +105,9 @@ std::vector<Point> initialize_test_set(unsigned int test_set_count)
 	std::vector<Point> tmp;
 	for (unsigned int i = 0; i < test_set_count; i++)
 	{
-		int x, y;
-		std::cin >> x >> y;
-		tmp.push_back(Point(x, y, 0));
+		int x, y, z;
+		std::cin >> x >> y >> z;
+		tmp.push_back(Point(x, y, z, 0));
 	}
 	return tmp;
 }
@@ -115,17 +133,17 @@ int main()
 	std::cin >> K;
 	std::cin >> learning_set_count;
 
-	std::vector<Point> tmp_lrnset = initialize_learning_set(learning_set_count);
-	std::vector<Point> learning_set;
-	learning_set.reserve(learning_set_count);
-	std::copy(tmp_lrnset.begin(), tmp_lrnset.end(), learning_set.begin());
+	std::vector<Point> learning_set = initialize_learning_set(learning_set_count);
+	//std::vector<Point> learning_set;
+	//learning_set.reserve(learning_set_count);
+	//std::copy(tmp_lrnset.begin(), tmp_lrnset.end(), learning_set.begin());
 	
 	std::cin >> test_set_count;
 	
-	std::vector<Point> tmp_testset = initialize_learning_set(learning_set_count);
-	std::vector<Point> test_set;
-	learning_set.reserve(test_set_count);
-	std::copy(tmp_testset.begin(), tmp_testset.end(), test_set.begin());
+	std::vector<Point> test_set = initialize_learning_set(learning_set_count);
+	//std::vector<Point> test_set;
+	//learning_set.reserve(test_set_count);
+	//std::copy(tmp_testset.begin(), tmp_testset.end(), test_set.begin());
 
 #pragma omp parallel for
 	for (int it = 0; it < test_set.size(); ++it)
