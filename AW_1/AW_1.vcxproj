@@ -115,6 +115,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main_fast2.cpp" />
+    <ClCompile Include="main_fast3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="test_data.py" />
