@@ -3,11 +3,9 @@
 #include <sstream>
 #include <cmath>
 #include <cstring>
-#include <map>
 #include <algorithm>
 #include <iterator>
 #include <vector>
-//#include <Windows.h>
 
 #define DEBUG
 #undef DEBUG
@@ -58,33 +56,28 @@ struct Point
 };
 
 
-inline unsigned int max_element(std::map<unsigned int, unsigned int> &container)
+inline unsigned int max_element(unsigned int* container)
 {
-	std::map<unsigned int, unsigned int>::const_iterator it = container.begin();
-	unsigned int temp = it->second, temp_key = it->first;
+	unsigned int i = 0, temp = container[0];
 
-	for (unsigned int i = 1; i < container.size(); ++i)
+	for (i = 1; i < 4; ++i)
 	{
-		if ((++it)->second > temp)
+		if (container[i] > temp)
 		{
-			temp = it->second;
-			temp_key = it->first;
+			temp = container[i];
 		}
 	}
-	return temp_key;
+	return i;
 }
 
 void initialize_learning_set(Point *learning_vector, unsigned int learning_set_count)
 {
 	for (unsigned int i = 0; i < learning_set_count; ++i)
 	{
-		int x, y, z, t;
-		std::cin >> t;
+		int x, y, z, t;		
+		std::cin >> x >> y >> z >> t;
 		Point temp = Point(t);
-
-		std::cin >> x >> y >> z;
 		temp.x = x; temp.y = y; temp.z = z;
-
 		learning_vector[i] = temp;
 	}
 }
@@ -104,6 +97,7 @@ void initialize_test_set(Point *test_vector, unsigned int test_set_count)
 
 void classify(Point &test_point, Point *learning_set, unsigned int learning_set_count)
 {
+//#pragma omp parallel for shared(learning_set, test_point, learning_set_count)
 	for (int it = 0; it < learning_set_count; ++it)
 	{
 		learning_set[it].distance(test_point);
@@ -155,7 +149,7 @@ int main()
 	if (::QueryPerformanceCounter(&start) == FALSE)
 	throw "foo";
 	*/
-#pragma omp parallel for shared(learning_set) private(learning_set_for_thread)
+#pragma omp parallel for shared(learning_set) private(learning_set_for_thread) //num_threads(1)
 	for (int it = 0; it < test_set_count; ++it)
 	{
 		Point *i = &test_set[it];
@@ -165,18 +159,20 @@ int main()
 
 		classify(*i, learning_set_for_thread, learning_set_count);
 
-		std::map<unsigned int, unsigned int> labels;
-
+		//std::map<unsigned int, unsigned int> labels;
+		//__declspec(align(64)) 
+		unsigned int labels[4] __attribute__((aligned(64))) 
+		= {0, 0, 0, 0}  //
+		;
 		for (int n = 0; n < K; ++n)
 		{
-			labels[learning_set_for_thread[n].type];
-			labels[learning_set_for_thread[n].type]++;
+			labels[learning_set_for_thread[n].type-1]++;
 		}
 		unsigned int type;
 		if (learning_set_for_thread[0].dist == 0)
 			type = learning_set_for_thread[0].type;
 		else
-			type = max_element(labels);
+			type = max_element(labels)+1;
 
 		(*i).type = type;
 		_mm_free(learning_set_for_thread);
